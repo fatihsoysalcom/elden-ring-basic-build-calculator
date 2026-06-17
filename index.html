@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elden Ring Basic Build Calculator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        div {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #f0f0f0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="number"], select {
+            width: 80px;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        p {
+            margin-bottom: 8px;
+        }
+        span {
+            font-weight: bold;
+            color: #0056b3;
+        }
+        #equipLoadStatus.red { color: red; }
+        #equipLoadStatus.green { color: green; }
+        #equipLoadStatus.orange { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>Elden Ring Basic Build Calculator</h1>
+
+    <div id="attributes">
+        <h2>Attributes</h2>
+        <label for="vigor">Vigor:</label>
+        <input type="number" id="vigor" value="10" min="1" max="99"><br>
+        <label for="strength">Strength:</label>
+        <input type="number" id="strength" value="10" min="1" max="99"><br>
+        <label for="dexterity">Dexterity:</label>
+        <input type="number" id="dexterity" value="10" min="1" max="99"><br>
+        <label for="endurance">Endurance:</label>
+        <input type="number" id="endurance" value="10" min="1" max="99"><br>
+    </div>
+
+    <div id="equipment">
+        <h2>Equipment</h2>
+        <h3>Weapon</h3>
+        <select id="weaponSelect">
+            <option value="longsword">Longsword</option>
+            <option value="greatsword">Greatsword</option>
+        </select>
+        <h3>Armor</h3>
+        <input type="checkbox" id="helmet" checked> <label for="helmet">Helmet (4.0)</label><br>
+        <input type="checkbox" id="chest" checked> <label for="chest">Chest (8.0)</label><br>
+        <input type="checkbox" id="gauntlets" checked> <label for="gauntlets">Gauntlets (3.0)</label><br>
+        <input type="checkbox" id="legs" checked> <label for="legs">Legs (5.0)</label><br>
+    </div>
+
+    <div id="results">
+        <h2>Results</h2>
+        <p>Total HP: <span id="totalHp"></span></p>
+        <p>Weapon Attack Rating (AR): <span id="weaponAr"></span></p>
+        <p>Current Equip Load: <span id="currentEquipLoad"></span> / <span id="maxEquipLoad"></span> (<span id="equipLoadPercentage"></span>%) - <span id="equipLoadStatus"></span></p>
+    </div>
+
+    <script>
+        // Define simplified game data for weapons and armor
+        const WEAPONS = {
+            longsword: { name: "Longsword", baseDamage: 100, strScaling: 0.8, dexScaling: 0.6, weight: 4.0 }, // C Str, D Dex
+            greatsword: { name: "Greatsword", baseDamage: 150, strScaling: 1.2, dexScaling: 0.3, weight: 12.0 } // B Str, E Dex
+        };
+
+        const ARMOR_PIECES = {
+            helmet: { name: "Helmet", weight: 4.0 },
+            chest: { name: "Chest Armor", weight: 8.0 },
+            gauntlets: { name: "Gauntlets", weight: 3.0 },
+            legs: { name: "Leg Armor", weight: 5.0 }
+        };
+
+        // Get references to input elements
+        const vigorInput = document.getElementById('vigor');
+        const strengthInput = document.getElementById('strength');
+        const dexterityInput = document.getElementById('dexterity');
+        const enduranceInput = document.getElementById('endurance');
+        const weaponSelect = document.getElementById('weaponSelect');
+        const armorCheckboxes = {
+            helmet: document.getElementById('helmet'),
+            chest: document.getElementById('chest'),
+            gauntlets: document.getElementById('gauntlets'),
+            legs: document.getElementById('legs')
+        };
+
+        // Get references to result display elements
+        const totalHpSpan = document.getElementById('totalHp');
+        const weaponArSpan = document.getElementById('weaponAr');
+        const currentEquipLoadSpan = document.getElementById('currentEquipLoad');
+        const maxEquipLoadSpan = document.getElementById('maxEquipLoad');
+        const equipLoadPercentageSpan = document.getElementById('equipLoadPercentage');
+        const equipLoadStatusSpan = document.getElementById('equipLoadStatus');
+
+        // Function to perform all calculations and update the display
+        function calculateBuild() {
+            // Get current attribute values from input fields
+            const vigor = parseInt(vigorInput.value);
+            const strength = parseInt(strengthInput.value);
+            const dexterity = parseInt(dexterityInput.value);
+            const endurance = parseInt(enduranceInput.value);
+
+            // --- 1. Calculate Total HP based on Vigor --- 
+            // This demonstrates a basic attribute-to-stat calculation.
+            const baseHp = 500; // Starting HP
+            const hpPerVigor = 20; // Simplified HP gain per Vigor point
+            const totalHp = baseHp + (vigor * hpPerVigor);
+            totalHpSpan.textContent = totalHp;
+
+            // --- 2. Calculate Weapon Attack Rating (AR) --- 
+            // This shows how weapon scaling works with attributes.
+            const selectedWeaponKey = weaponSelect.value;
+            const selectedWeapon = WEAPONS[selectedWeaponKey];
+            const weaponAr = Math.round(
+                selectedWeapon.baseDamage +
+                (strength * selectedWeapon.strScaling) +
+                (dexterity * selectedWeapon.dexScaling)
+            );
+            weaponArSpan.textContent = weaponAr;
+
+            // --- 3. Calculate Equip Load --- 
+            // This illustrates how Endurance affects max load and equipment contributes to current load.
+            const baseMaxEquipLoad = 20.0; // Starting Max Equip Load
+            const equipLoadPerEndurance = 1.5; // Simplified Equip Load gain per Endurance point
+            const maxEquipLoad = baseMaxEquipLoad + (endurance * equipLoadPerEndurance);
+            maxEquipLoadSpan.textContent = maxEquipLoad.toFixed(1);
+
+            let currentEquipLoad = selectedWeapon.weight; // Start with weapon weight
+            for (const key in ARMOR_PIECES) {
+                if (armorCheckboxes[key].checked) {
+                    currentEquipLoad += ARMOR_PIECES[key].weight;
+                }
+            }
+            currentEquipLoadSpan.textContent = currentEquipLoad.toFixed(1);
+
+            const equipLoadPercentage = (currentEquipLoad / maxEquipLoad) * 100;
+            equipLoadPercentageSpan.textContent = equipLoadPercentage.toFixed(1);
+
+            let equipLoadStatus = "Light";
+            equipLoadStatusSpan.classList.remove('red', 'green', 'orange'); // Clear previous styles
+
+            if (equipLoadPercentage < 30) {
+                equipLoadStatus = "Light";
+                equipLoadStatusSpan.classList.add('green');
+            } else if (equipLoadPercentage >= 30 && equipLoadPercentage < 70) {
+                equipLoadStatus = "Medium";
+                equipLoadStatusSpan.classList.add('orange');
+            } else if (equipLoadPercentage >= 70 && equipLoadPercentage <= 100) {
+                equipLoadStatus = "Heavy";
+                equipLoadStatusSpan.classList.add('orange');
+            } else if (equipLoadPercentage > 100) {
+                equipLoadStatus = "Overloaded";
+                equipLoadStatusSpan.classList.add('red');
+            }
+            equipLoadStatusSpan.textContent = equipLoadStatus;
+        }
+
+        // Add event listeners to all input fields to trigger recalculation on change
+        vigorInput.addEventListener('input', calculateBuild);
+        strengthInput.addEventListener('input', calculateBuild);
+        dexterityInput.addEventListener('input', calculateBuild);
+        enduranceInput.addEventListener('input', calculateBuild);
+        weaponSelect.addEventListener('change', calculateBuild);
+        for (const key in armorCheckboxes) {
+            armorCheckboxes[key].addEventListener('change', calculateBuild);
+        }
+
+        // Initial calculation when the page loads
+        calculateBuild();
+    </script>
+</body>
+</html>
